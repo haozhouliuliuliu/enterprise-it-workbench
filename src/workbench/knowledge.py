@@ -456,6 +456,35 @@ class KnowledgeStore:
         results = [hit for score, hit in scored[: max(1, top_k)] if score >= threshold]
         return results
 
+    def document_metadata(self, evidence_ids: list[str]) -> dict[str, dict[str, Any]]:
+        if not evidence_ids:
+            return {}
+        placeholders = ",".join("?" * len(evidence_ids))
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                f"SELECT c.evidence_id, d.doc_id, d.title, d.version, d.status, "
+                f"d.effective_from, d.effective_to, d.doc_type FROM kb_chunks c "
+                f"JOIN kb_documents d ON d.doc_pk = c.doc_pk "
+                f"WHERE c.evidence_id IN ({placeholders})",
+                evidence_ids,
+            ).fetchall()
+        finally:
+            connection.close()
+        return {
+            row["evidence_id"]: {
+                "doc_id": row["doc_id"],
+                "title": row["title"],
+                "version": row["version"],
+                "status": row["status"],
+                "effective_from": row["effective_from"],
+                "effective_to": row["effective_to"],
+                "doc_type": row["doc_type"],
+                "is_current": effective(row["status"], row["effective_from"], row["effective_to"]),
+            }
+            for row in rows
+        }
+
     def find_evidence(self, evidence_ids: list[str]) -> set[str]:
         if not evidence_ids:
             return set()

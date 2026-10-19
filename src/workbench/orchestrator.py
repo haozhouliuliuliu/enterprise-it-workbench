@@ -358,6 +358,68 @@ class CollaborationSystem:
                     {"code": "POLICY_CONFLICT", "severity": "warning", "detail": f"制度冲突：{conflict.description}"}
                 )
             cited = [evidence_id for rule in policy.output.rules for evidence_id in rule.evidence_ids]
+            metadata = self.tools.knowledge.document_metadata(cited)
+            for rule in policy.output.rules:
+                if not rule.evidence_ids:
+                    issues.append(
+                        {
+                            "code": "POLICY_EVIDENCE_MISSING",
+                            "severity": "error",
+                            "detail": f"制度条款未绑定知识库证据：{rule.citation}",
+                        }
+                    )
+                    continue
+                for evidence_id in rule.evidence_ids:
+                    meta = metadata.get(evidence_id)
+                    if meta is None:
+                        issues.append(
+                            {
+                                "code": "INVALID_EVIDENCE",
+                                "severity": "error",
+                                "detail": f"制度证据不存在：{evidence_id}",
+                            }
+                        )
+                        continue
+                    if meta["doc_id"] != rule.doc_id or meta["version"] != rule.version:
+                        issues.append(
+                            {
+                                "code": "POLICY_STATUS_MISMATCH",
+                                "severity": "error",
+                                "detail": (
+                                    f"模型制度元数据与知识库不一致：{rule.doc_id} {rule.version} "
+                                    f"vs {meta['doc_id']} {meta['version']}"
+                                ),
+                            }
+                        )
+                    if not meta["is_current"]:
+                        issues.append(
+                            {
+                                "code": "POLICY_NOT_CURRENT",
+                                "severity": "error",
+                                "detail": (
+                                    f"制度证据不是现行有效版本：{meta['doc_id']} "
+                                    f"{meta['version']} status={meta['status']}"
+                                ),
+                            }
+                        )
+        if output.confidence < 0.5:
+            issues.append({"code": "LOW_CONFIDENCE", "severity": "warning", "detail": "业务调查置信度偏低"})
+
+        if policy and policy.ok and policy.output is not None:
+            for rule in policy.output.rules:
+                if any(token in rule.status for token in ("废止", "未审核", "草稿")):
+                    issues.append(
+                        {
+                            "code": "OBSOLETE_SOURCE",
+                            "severity": "warning",
+                            "detail": f"引用了非现行文档：{rule.title}（{rule.status}）",
+                        }
+                    )
+            for conflict in policy.output.conflicts:
+                issues.append(
+                    {"code": "POLICY_CONFLICT", "severity": "warning", "detail": f"制度冲突：{conflict.description}"}
+                )
+            cited = [evidence_id for rule in policy.output.rules for evidence_id in rule.evidence_ids]
             valid = self.tools.knowledge.find_evidence(cited)
             for rule in policy.output.rules:
                 if not rule.evidence_ids:
@@ -519,6 +581,14 @@ class CollaborationSystem:
             "open_questions": audit.required_followups if audit else [],
             "audit_verdict": audit.verdict if audit else None,
             "policy_unavailable": bool(policy is not None and not policy.ok),
+            "proposal_blocked": next(
+                (
+                    json.loads(event["payload_json"])
+                    for event in self.repository.list_events(task_id)
+                    if event["type"] == "proposal_blocked"
+                ),
+                None,
+            ),
             "evidence": [item.to_dict() for item in evidence],
             "plan": plan.model_dump(mode="json"),
             "model_calls": task["model_calls"],

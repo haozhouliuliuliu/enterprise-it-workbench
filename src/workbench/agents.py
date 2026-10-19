@@ -155,7 +155,7 @@ def _complete(
     *,
     tools: list[dict[str, Any]] | None = None,
     subtask_id: str | None = None,
-    attempts: int = 2,
+    attempts: int = 3,
 ) -> LLMResponse:
     chars = _char_count(messages) + len(json.dumps(tools or [], ensure_ascii=False))
     if chars > ctx.settings.max_prompt_chars:

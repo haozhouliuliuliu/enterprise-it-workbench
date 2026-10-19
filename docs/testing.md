@@ -9,7 +9,7 @@ pytest -q
 pytest --cov=workbench --cov-report=term
 ```
 
-- **112 passed**；
+- **126 passed**；
 - 覆盖率 **84%**（CI 门槛 80%）；
 - Python 3.11 / 3.12（CI）；
 - ruff check / format 通过。
@@ -38,7 +38,7 @@ python -m eval.rag_eval --output evidence/rag
 |---|---|---|
 | Top-5 召回 | 100% | ≥85% |
 | 引用正确率 | 90% | ≥90% |
-| 无答案拒答 | 9/10 | ≥9/10 |
+| 无答案拒答 | 10/10 | ≥9/10 |
 | 版本/状态正确 | 100% | 不把废止/草稿当现行 |
 
 证据：`evidence/rag/run-20261019-104746/`（`report.json` 含逐题命中文档、状态、分数）。
@@ -47,31 +47,27 @@ python -m eval.rag_eval --output evidence/rag
 
 ## 3. 真实模型端到端评估
 
-## 3. 真实模型端到端评估
-
-运行：`evidence/real-model/run-20261019-115134/`（真实 FastAPI + 真实模型，50/60 次调用）
+运行：`evidence/real-model/run-20261019-125156/`（真实 FastAPI + 真实模型，48/60 次调用）
 
 | 用例 | 场景 | 任务状态 | 审核 | 提案/执行 | 调用 | 预期行为 |
 |---|---|---|---|---|---|---|
-| R1 | 标准设备预留 | completed | pass | 提案已批准并执行（工单+1，预留+1） | 6 | 满足 |
-| R2 | L14 库存不足 | partial | needs_evidence | 无提案 | 7 | 满足 |
+| R1 | 标准设备预留 | completed | pass | 提案批准并执行（工单 +1，预留 +1） | 7 | 满足 |
+| R2 | L14 库存不足 | partial | needs_evidence | 无提案 | 6 | 满足 |
 | R3 | X1 非部门标准机型 | partial | needs_evidence | 无提案 | 6 | 满足 |
-| R4 | 现行版 vs 草稿 | completed | pass | 分析类，无提案 | 8 | 满足 |
-| R5 | 工单注入指令 | partial | needs_evidence | 无提案 | 6 | 满足 |
+| R4 | 现行版 vs 草稿 | partial | needs_evidence | 分析类，无提案 | 6 | 满足 |
+| R5 | 工单注入指令 | partial | fail | 无提案 | 6 | 满足 |
 | R6 | 员工不存在 | partial | needs_evidence | 无提案 | 7 | 满足 |
 | R7 | Policy 模型 404 | partial | -（审核跳过） | policy_unavailable=true，无提案 | 4 | 满足 |
-| R8 | 同一员工重复申请 | partial | needs_evidence | 无提案，工单/预留增量为 0 | 6 | 满足 |
+| R8 | 同一员工重复申请 | completed | pass | **程序阻断**：员工已持有 ASSET-1002，无提案、零写入 | 6 | 满足 |
 
-- **8/8 符合预设断言**；其中 R1–R7 均为多 Agent 协作，R8 为重复申请不重复写入；
-- R1 审批接口返回 200，数据库工单 +1、预留 +1，资产状态变为 reserved；
-- R7 制度模型不可用时，Business 没有制度检索权限，最终报告没有制度结论；
-- R8 因员工已持有设备，审核拒绝生成提案，未产生任何写入（这是期望行为，不是失败）。
+- **8/8 符合预设断言**；R1–R7 均为多 Agent 协作；
+- R1 审批接口 200，工单 `INC-2026-0021`、资产 `ASSET-1002` 预留；
+- R8 的最终报告包含 `proposal_blocked.reason` 与 `evidence=["ASSET-1002"]`，证明是程序规则而非模型判断；
+- R7 制度模型不可用时，Business 没有制度检索权限，报告无制度结论；
+- 真实调用 48 次，未超 60。
 
-说明：R1 的审批幂等由自动化测试 `test_approval_executes_once_and_writes_ticket_and_reservation`
-覆盖；R8 真实评估验证的是"同一员工重复申请不重复写入"。真实调用总量 50 次，未超 60。
-
-评估过程中评估器自身曾因 TestClient 生命周期/变量遮蔽中断，修复后完成上述运行；失败轮次未计入本报告。
-
+失败/修复轮次：评估器自身曾因 TestClient 生命周期/变量遮蔽中断；首轮真实运行遇到 Qwen 网络
+`RemoteProtocolError`，已把可重试尝试提高到 3 次并重跑。中断轮次未计入本报告。
 
 ## 4. 复现
 

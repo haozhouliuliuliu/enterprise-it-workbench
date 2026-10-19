@@ -185,28 +185,48 @@ def policy_findings(
     *,
     status: str = "现行",
     conflicts: list[dict[str, Any]] | None = None,
-) -> LLMResponse:
-    return answer(
-        json.dumps(
-            {
-                "rules": [
-                    {
-                        "doc_id": "POL-IT-001",
-                        "title": "电脑领用制度",
-                        "section": "配置标准",
-                        "version": "v2.1",
-                        "status": status,
-                        "condition": condition,
-                        "citation": "电脑领用制度 · 配置标准",
-                    }
-                ],
-                "conflicts": conflicts or [],
-                "gaps": [],
-                "confidence": 0.9,
-            },
-            ensure_ascii=False,
+) -> Callable:
+    def handler(messages: list[dict[str, Any]]) -> LLMResponse:
+        doc_id, title, version, evidence_id = "POL-IT-001", "电脑领用制度", "v2.1", "EV-MISSING"
+        for message in reversed(messages):
+            if message.get("role") != "tool":
+                continue
+            try:
+                payload = json.loads(message.get("content") or "{}")
+            except json.JSONDecodeError:
+                continue
+            results = (payload.get("data") or {}).get("results") or []
+            if results:
+                first = next((item for item in results if item.get("is_current")), results[0])
+                doc_id = first.get("doc_id", doc_id)
+                title = first.get("title", title)
+                version = first.get("version", version)
+                evidence_id = first.get("evidence_id", evidence_id)
+                break
+        return answer(
+            json.dumps(
+                {
+                    "rules": [
+                        {
+                            "doc_id": doc_id,
+                            "title": title,
+                            "section": "配置标准",
+                            "version": version,
+                            "status": status,
+                            "condition": condition,
+                            "citation": f"{title} · 配置标准",
+                            "evidence_ids": [evidence_id],
+                        }
+                    ],
+                    "conflicts": conflicts or [],
+                    "gaps": [],
+                    "confidence": 0.9,
+                },
+                ensure_ascii=False,
+            )
         )
-    )
+
+    return handler
 
 
 def audit_result(

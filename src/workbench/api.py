@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, Header, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .auth import AuthError, User
 from .config import Settings
@@ -37,6 +37,12 @@ class DecisionBody(BaseModel):
     decision: str = Field(pattern="^(approve|reject)$")
     params_hash: str | None = None
     reason: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def _approve_requires_hash(self) -> DecisionBody:
+        if self.decision == "approve" and not (self.params_hash or "").strip():
+            raise ValueError("approve 必须提供 params_hash")
+        return self
 
 
 def _secrets(settings: Settings) -> tuple[str, ...]:

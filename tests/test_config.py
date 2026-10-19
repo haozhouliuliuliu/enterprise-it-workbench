@@ -62,3 +62,15 @@ def test_models_command_without_keys(monkeypatch, capsys) -> None:
     assert "planner" in output
     assert "auditor" in output
     assert "kimi" in output
+
+
+def test_approver_must_have_department() -> None:
+    from workbench.config import ApiKeyConfig
+    from workbench.errors import ConfigError
+
+    with pytest.raises(ConfigError):
+        ApiKeyConfig("approver-key-123", "carol", "approver")
+    with pytest.raises(ConfigError):
+        ApiKeyConfig("approver-key-123", "carol", "approver", "   ")
+    key = ApiKeyConfig("approver-key-123", "carol", "approver", "研发中心")
+    assert key.department == "研发中心"

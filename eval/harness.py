@@ -270,8 +270,10 @@ def main(argv: list[str] | None = None) -> int:
     if r1.get("ticket_delta") != 1 or r1.get("reservation_delta") != 1:
         failures.append("R1 审批后未正确创建工单/预留")
     r8 = results[-1]
-    if r8.get("ticket_delta") != 1:
-        failures.append("R8 工单数量不正确")
+    if r8.get("ticket_delta") != 0 or r8.get("reservation_delta") != 0:
+        failures.append("R8 重复申请产生了业务写入")
+    if not (r8.get("final") or {}).get("proposal_blocked"):
+        failures.append("R8 缺少程序级阻断原因")
 
     config = {
         "run_id": run_id,

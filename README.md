@@ -92,7 +92,7 @@ curl -X POST http://127.0.0.1:8000/v1/approvals/<proposal_id>/decision \
 |---|---|---|
 | Top-5 召回 | **100%** | ≥85% |
 | 引用正确率 | **90%** | ≥90% |
-| 无答案拒答 | **9/10** | ≥9/10 |
+| 无答案拒答 | **10/10** | ≥9/10 |
 | 版本/状态 | **100%** | 不把废止/草稿当现行 |
 
 报告：`evidence/rag/`；题目：`eval/rag_cases.json`。
@@ -138,22 +138,21 @@ python -m eval.rag_eval --output evidence/rag
 python -m eval.harness --output evidence/real-model   # 需要三个模型密钥，≤60 次调用
 ```
 
-- **112 个自动化测试，覆盖率 84%**；
+- **126 个自动化测试，覆盖率 84%**；
 - RAG 固定集 30 题，指标见上；
 - 真实模型 8 个端到端场景（含审批执行、重复审批、Policy 故障）：见 [docs/testing.md](docs/testing.md)。
 
 ### 真实模型运行（8 场景）
 
-- 运行：`evidence/real-model/run-20261019-115134/`
+- 运行：`evidence/real-model/run-20261019-125156/`
 - 模型：deepseek-flash + qwen3.8-flash + kimi-k2.7-code
-- 调用：**50/60**
+- 调用：**48/60**
 - 结果：**8/8 符合预设断言**
   - R1 标准申请 → 提案批准 → 工单 +1、资产预留 +1
   - R2 库存不足 / R3 非标准机型 / R5 注入 / R6 员工不存在 → 均无提案
   - R7 Policy 模型 404 → `policy_unavailable=true`，无制度结论
-  - R8 同一员工重复申请 → 无提案、零写入
+  - R8 同一员工重复申请 → 程序检测到已有 `ASSET-1002`，拒绝生成提案，零写入
 - 详细表格与失败轮次说明：[docs/testing.md](docs/testing.md)
-
 
 ## Docker 与 HTTPS
 

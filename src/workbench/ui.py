@@ -138,24 +138,39 @@ async function submitTask() {
   } catch (e) { document.getElementById("submitmsg").textContent = "失败：" + e.message; }
 }
 
+function renderTaskRow(t) {
+  const conclusion = (t.result && t.result.conclusion) ? t.result.conclusion.slice(0, 80) : "";
+  return `<tr><td><a href="#" class="task-link" data-task="${escapeHtml(t.task_id)}">${escapeHtml(t.task_id)}</a></td>` +
+    `<td><span class="badge">${escapeHtml(t.status)}</span></td>` +
+    `<td>${Number(t.model_calls) || 0}</td><td>${escapeHtml(conclusion)}</td></tr>`;
+}
+
 async function loadTasks() {
   try {
     const data = await api("/v1/tasks");
-    const rows = data.items.map(t => `<tr><td><a href="#" onclick="showTask('${t.task_id}');return false">${t.task_id}</a></td><td><span class="badge">${t.status}</span></td><td>${t.model_calls}</td><td>${(t.result && t.result.conclusion) ? t.result.conclusion.slice(0,80) : ""}</td></tr>`).join("");
+    const rows = data.items.map(renderTaskRow).join("");
     document.getElementById("tasklist").innerHTML = `<table><tr><th>任务</th><th>状态</th><th>模型调用</th><th>结论</th></tr>${rows || "<tr><td colspan=4>暂无任务</td></tr>"}</table>`;
+    document.querySelectorAll(".task-link").forEach(link => {
+      link.onclick = (event) => { event.preventDefault(); showTask(link.dataset.task); };
+    });
   } catch (e) { document.getElementById("tasklist").textContent = "加载失败：" + e.message; }
 }
 
 async function showTask(id) {
   try {
-    const t = await api("/v1/tasks/" + id);
+    const t = await api("/v1/tasks/" + encodeURIComponent(id));
     const r = t.result || {};
-    const ev = (r.evidence || []).map(e => `<li><code>${e.evidence_id}</code> ${e.tool} ${e.citation || ""}</li>`).join("");
-    const issues = (r.issues || []).map(i => `<li><b>${i.level}/${i.type}</b> ${i.description}</li>`).join("");
-    const proposal = t.proposal ? `<h4>待审批提案</h4><pre>${escapeHtml(JSON.stringify(t.proposal.actions_json ? JSON.parse(t.proposal.actions_json) : t.proposal.actions, null, 2))}</pre><p>参数哈希：<code>${t.proposal.params_hash}</code></p>` : "";
-    document.getElementById("taskdetail").innerHTML = `<div class="card"><h3>${t.task_id} <span class="badge">${t.status}</span></h3>
+    const ev = (r.evidence || []).map(e => `<li><code>${escapeHtml(e.evidence_id || "")}</code> ${escapeHtml(e.tool || "")} ${escapeHtml(e.citation || "")}</li>`).join("");
+    const issues = (r.issues || []).map(i => `<li><b>${escapeHtml(i.level || "")}/${escapeHtml(i.type || "")}</b> ${escapeHtml(i.description || "")}</li>`).join("");
+    let proposal = "";
+    if (t.proposal) {
+      let actions = t.proposal.actions;
+      try { actions = t.proposal.actions_json ? JSON.parse(t.proposal.actions_json) : actions; } catch (e) { actions = t.proposal.actions_json; }
+      proposal = `<h4>待审批提案</h4><pre>${escapeHtml(JSON.stringify(actions, null, 2))}</pre><p>参数哈希：<code>${escapeHtml(t.proposal.params_hash || "")}</code></p>`;
+    }
+    document.getElementById("taskdetail").innerHTML = `<div class="card"><h3>${escapeHtml(t.task_id)} <span class="badge">${escapeHtml(t.status)}</span></h3>
       <p><b>结论：</b>${escapeHtml(r.conclusion || "")}</p>
-      <p><b>审核：</b>${r.audit_verdict || "未审核"} ${r.policy_unavailable ? "（制度结论不可用）" : ""}</p>
+      <p><b>审核：</b>${escapeHtml(r.audit_verdict || "未审核")} ${r.policy_unavailable ? "（制度结论不可用）" : ""}</p>
       ${proposal}
       <h4>证据</h4><ul>${ev || "<li>无</li>"}</ul>
       <h4>问题与缺口</h4><ul>${issues || "<li>无</li>"}</ul>
@@ -169,18 +184,22 @@ async function loadApprovals() {
     const rows = data.items.map(p => {
       let actions = p.actions_json;
       try { actions = JSON.stringify(JSON.parse(p.actions_json), null, 2); } catch (e) {}
-      return `<div class="card"><b>${p.proposal_id}</b> <span class="badge">${p.status}</span> 任务 ${p.task_id} 部门 ${p.department}
+      return `<div class="card"><b>${escapeHtml(p.proposal_id)}</b> <span class="badge">${escapeHtml(p.status)}</span> 任务 ${escapeHtml(p.task_id)} 部门 ${escapeHtml(p.department || "")}
         <pre>${escapeHtml(actions)}</pre>
-        <div class="row"><button class="ok" onclick="decide('${p.proposal_id}','approve','${p.params_hash}')">批准并执行</button>
-        <button class="danger" onclick="decide('${p.proposal_id}','reject','${p.params_hash}')">拒绝</button></div></div>`;
+        <div class="row"><button class="ok decision-btn" data-id="${escapeHtml(p.proposal_id)}" data-hash="${escapeHtml(p.params_hash)}" data-decision="approve">批准并执行</button>
+        <button class="danger decision-btn" data-id="${escapeHtml(p.proposal_id)}" data-hash="${escapeHtml(p.params_hash)}" data-decision="reject">拒绝</button></div></div>`;
     }).join("");
-    document.getElementById("approvallist").innerHTML = rows || "没有待审批提案";
+    const container = document.getElementById("approvallist");
+    container.innerHTML = rows || "没有待审批提案";
+    container.querySelectorAll(".decision-btn").forEach(button => {
+      button.onclick = () => decide(button.dataset.id, button.dataset.decision, button.dataset.hash);
+    });
   } catch (e) { document.getElementById("approvallist").textContent = "加载失败：" + e.message; }
 }
 
 async function decide(id, decision, hash) {
   try {
-    const out = await api(`/v1/approvals/${id}/decision`, {method:"POST", body: JSON.stringify({decision, params_hash: hash})});
+    const out = await api(`/v1/approvals/${encodeURIComponent(id)}/decision`, {method:"POST", body: JSON.stringify({decision, params_hash: hash})});
     alert(decision === "approve" ? "已执行：" + JSON.stringify(out.result) : "已拒绝");
     await loadApprovals(); await loadTasks();
   } catch (e) { alert("操作失败：" + e.message); }
@@ -189,7 +208,7 @@ async function decide(id, decision, hash) {
 async function loadKnowledge() {
   try {
     const data = await api("/v1/knowledge/documents");
-    const rows = data.items.map(d => `<tr><td>${d.doc_id}</td><td>${d.title}</td><td>${d.version}</td><td>${d.status}</td><td>${d.chunk_count}</td><td>${d.index_status}</td></tr>`).join("");
+    const rows = data.items.map(d => `<tr><td>${escapeHtml(d.doc_id)}</td><td>${escapeHtml(d.title)}</td><td>${escapeHtml(d.version)}</td><td>${escapeHtml(d.status)}</td><td>${Number(d.chunk_count) || 0}</td><td>${escapeHtml(d.index_status)}</td></tr>`).join("");
     document.getElementById("klist").innerHTML = `<table><tr><th>ID</th><th>标题</th><th>版本</th><th>状态</th><th>chunks</th><th>索引</th></tr>${rows}</table>`;
   } catch (e) { document.getElementById("klist").textContent = "加载失败：" + e.message; }
 }

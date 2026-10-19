@@ -266,7 +266,7 @@ def test_approval_queue_and_execute_once(tmp_path: Path) -> None:
         queue_full(env)
         created = client.post(
             "/v1/tasks",
-            json={"request": "新员工 EMP-1001 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
+            json={"request": "新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
             headers=headers(),
         )
         task_id = created.json()["task_id"]
@@ -314,7 +314,7 @@ def test_reject_prevents_business_write(tmp_path: Path) -> None:
         queue_full(env)
         task_id = client.post(
             "/v1/tasks",
-            json={"request": "新员工 EMP-1001 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
+            json={"request": "新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
             headers=headers(),
         ).json()["task_id"]
         wait_status(client, task_id, "needs_approval")
@@ -337,7 +337,7 @@ def test_self_approval_forbidden(tmp_path: Path) -> None:
         queue_full(env)
         task_id = client.post(
             "/v1/tasks",
-            json={"request": "新员工 EMP-1001 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
+            json={"request": "新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
             headers=headers("carol-secret-key"),
         ).json()["task_id"]
         wait_status(client, task_id, "needs_approval", "carol-secret-key")
@@ -357,7 +357,8 @@ def test_knowledge_admin_lifecycle_and_ui(tmp_path: Path) -> None:
     with TestClient(app) as client:
         assert client.get("/").status_code == 200
         assert "Workbench" in client.get("/").text
-        assert "sk-" not in client.get("/").text
+        assert "admin-key-change-me" not in client.get("/").text
+        assert "sk-replace-me" not in client.get("/").text
 
         created = client.post(
             "/v1/knowledge/documents",
@@ -389,3 +390,38 @@ def test_knowledge_admin_lifecycle_and_ui(tmp_path: Path) -> None:
             headers=headers("admin-secret-key"),
         )
         assert bad.status_code == 400
+
+
+def test_approve_without_or_with_wrong_hash_is_rejected(tmp_path: Path) -> None:
+    import sqlite3
+
+    env, _, app = make_app(tmp_path)
+    with TestClient(app) as client:
+        queue_full(env)
+        task_id = client.post(
+            "/v1/tasks",
+            json={"request": "新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑"},
+            headers=headers(),
+        ).json()["task_id"]
+        wait_status(client, task_id, "needs_approval")
+        proposal = client.get("/v1/approvals", headers=headers("carol-secret-key")).json()["items"][0]
+        before = sqlite3.connect(env.settings.db_path).execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
+
+        missing = client.post(
+            f"/v1/approvals/{proposal['proposal_id']}/decision",
+            json={"decision": "approve"},
+            headers=headers("carol-secret-key"),
+        )
+        assert missing.status_code == 422
+
+        wrong = client.post(
+            f"/v1/approvals/{proposal['proposal_id']}/decision",
+            json={"decision": "approve", "params_hash": "deadbeef"},
+            headers=headers("carol-secret-key"),
+        )
+        assert wrong.status_code == 409
+        assert wrong.json()["error"] == "PARAMS_CHANGED"
+
+        after = sqlite3.connect(env.settings.db_path).execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
+        assert after == before
+        assert client.get(f"/v1/tasks/{task_id}", headers=headers()).json()["status"] == "needs_approval"

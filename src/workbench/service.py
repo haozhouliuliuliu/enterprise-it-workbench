@@ -152,12 +152,11 @@ class TaskService:
             task = self.repository.get_task(task_id)
         except TaskNotFound as exc:
             raise NotFoundError() from exc
-        if (
-            not user.is_admin
-            and task.get("owner") != user.user
-            and (user.role != "approver" or (user.department and task.get("department") != user.department))
-        ):
-            raise NotFoundError()
+        if not user.is_admin and task.get("owner") != user.user:
+            if user.role != "approver":
+                raise NotFoundError()
+            if not user.department.strip() or task.get("department") != user.department:
+                raise NotFoundError()
         return task
 
     def list_tasks(self, user: User, limit: int = 20) -> list[dict[str, Any]]:
@@ -183,6 +182,8 @@ class TaskService:
     def pending_approvals(self, user: User) -> list[dict[str, Any]]:
         if user.role not in {"approver", "admin"}:
             raise ServiceError(403, "FORBIDDEN")
+        if not user.is_admin and not user.department.strip():
+            raise ServiceError(403, "FORBIDDEN_DEPARTMENT")
         department = None if user.is_admin else user.department
         return self.repository.list_proposals(status="pending", department=department)
 
@@ -191,6 +192,10 @@ class TaskService:
 
         if user.role not in {"approver", "admin"}:
             raise ServiceError(403, "FORBIDDEN")
+        if not user.is_admin and not user.department.strip():
+            raise ServiceError(403, "FORBIDDEN_DEPARTMENT")
+        if decision == "approve" and not params_hash:
+            raise ServiceError(400, "PARAMS_HASH_REQUIRED")
         try:
             if decision == "reject":
                 reject_proposal(

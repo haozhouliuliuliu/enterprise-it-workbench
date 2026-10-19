@@ -74,6 +74,8 @@ class ApiKeyConfig:
             raise ConfigError("API key 必须绑定用户")
         if self.role not in {"executor", "approver", "admin"}:
             raise ConfigError(f"不支持的角色：{self.role}")
+        if self.role == "approver" and not self.department.strip():
+            raise ConfigError("approver 必须绑定非空部门")
 
 
 @dataclass(frozen=True, slots=True)

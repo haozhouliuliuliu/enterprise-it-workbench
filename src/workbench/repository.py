@@ -113,6 +113,9 @@ CREATE TABLE IF NOT EXISTS wb_reservations (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_wb_res_asset_active
     ON wb_reservations(asset_id) WHERE released_at IS NULL;
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wb_res_employee_active
+    ON wb_reservations(employee_id) WHERE released_at IS NULL;
+
 CREATE INDEX IF NOT EXISTS idx_collab_tasks_status ON collab_tasks(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_collab_runs_task ON collab_runs(task_id, id);
 """

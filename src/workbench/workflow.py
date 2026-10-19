@@ -72,6 +72,14 @@ def choose_model(request: str, department: str) -> str:
     return STANDARD_MODEL.get(department, DEFAULT_MODEL)
 
 
+def _block_proposal(repository: Repository, task_id: str, reason: str, evidence: list[str] | None = None) -> None:
+    repository.add_event(
+        task_id,
+        "proposal_blocked",
+        {"reason": reason, "evidence": evidence or []},
+    )
+
+
 def maybe_create_proposal(
     *,
     repository: Repository,
@@ -83,20 +91,51 @@ def maybe_create_proposal(
     audit_verdict: str,
     request: str,
 ) -> dict[str, Any] | None:
-    """只有 audit=pass、制度现行、库存可满足、员工存在时才生成提案。"""
+    """只有 audit=pass、制度现行、员工无设备、库存可满足时才生成提案。
+
+    制度状态以知识库元数据为权威，模型输出的 status 只作为待核对字段。
+    """
     if audit_verdict != "pass" or not is_actionable(request):
         return None
-    if business_output is None or policy_output is None:
+    if business_output is None or policy_output is None or not policy_output.rules:
+        _block_proposal(repository, task["id"], "缺少业务或制度结论")
         return None
-    if not policy_output.rules:
-        return None
+
+    evidence_ids = [eid for rule in policy_output.rules for eid in getattr(rule, "evidence_ids", [])]
+    metadata = knowledge.document_metadata(evidence_ids)
     for rule in policy_output.rules:
-        status = getattr(rule, "status", "") or ""
-        if any(token in status for token in ("废止", "草稿", "未审核", "superseded", "draft")):
+        model_status = getattr(rule, "status", "") or ""
+        if any(token in model_status for token in ("废止", "草稿", "未审核", "superseded", "draft")):
+            _block_proposal(repository, task["id"], f"模型标注非现行制度：{rule.citation}")
             return None
+        if not rule.evidence_ids:
+            _block_proposal(repository, task["id"], f"制度条款未绑定证据：{rule.citation}")
+            return None
+        for evidence_id in rule.evidence_ids:
+            meta = metadata.get(evidence_id)
+            if meta is None:
+                _block_proposal(repository, task["id"], f"制度证据不存在：{evidence_id}", [evidence_id])
+                return None
+            if meta["doc_id"] != rule.doc_id or meta["version"] != rule.version:
+                _block_proposal(
+                    repository,
+                    task["id"],
+                    f"模型制度元数据与知识库不一致：{rule.doc_id} {rule.version}",
+                    [evidence_id],
+                )
+                return None
+            if not meta["is_current"]:
+                _block_proposal(
+                    repository,
+                    task["id"],
+                    f"制度证据非现行：{meta['doc_id']} {meta['status']}",
+                    [evidence_id],
+                )
+                return None
 
     employee_match = EMPLOYEE_RE.search(request)
     if not employee_match:
+        _block_proposal(repository, task["id"], "缺少有效员工编号")
         return None
     employee_id = employee_match.group(0)
 
@@ -104,15 +143,34 @@ def maybe_create_proposal(
     try:
         employee = _employee(connection, employee_id)
         if employee is None:
+            _block_proposal(repository, task["id"], f"员工不存在：{employee_id}", [employee_id])
             return None
         department = employee["department"]
         model = choose_model(request, department)
         allowed = ALLOWED_MODELS.get(department, {"ThinkPad L14"})
         if model not in allowed:
+            _block_proposal(repository, task["id"], f"机型不属于部门标准配置：{department} {model}", [employee_id])
+            return None
+        held = connection.execute(
+            "SELECT asset_id FROM assets WHERE assignee_id = ? AND status IN ('in_use', 'reserved')",
+            (employee_id,),
+        ).fetchall()
+        reserved = connection.execute(
+            "SELECT asset_id FROM wb_reservations WHERE employee_id = ? AND released_at IS NULL",
+            (employee_id,),
+        ).fetchall()
+        if held or reserved:
+            assets = sorted({row["asset_id"] for row in held} | {row["asset_id"] for row in reserved})
+            _block_proposal(
+                repository,
+                task["id"],
+                f"员工已持有设备或存在有效预留：{employee_id}",
+                assets,
+            )
             return None
         assets = _available_assets(connection, model)
         if not assets:
-            # 指定机型不可用时不生成可执行提案，交给用户补证/改型号。
+            _block_proposal(repository, task["id"], f"库存不足：{model}", [employee_id])
             return None
         asset = assets[0]
         params = {
@@ -173,6 +231,8 @@ def execute_proposal(repository: Repository, proposal: dict[str, Any]) -> dict[s
     if len(actions) != 1 or actions[0].get("action") != "provision_device":
         raise WorkflowError("UNSUPPORTED_ACTION", "提案动作不受支持")
     params = actions[0]
+    if params_hash(params) != proposal["params_hash"]:
+        raise WorkflowError("PROPOSAL_TAMPERED", "提案参数与哈希不一致")
     asset_id = params["asset_id"]
     task_id = proposal["task_id"]
     connection = _connect(repository.db_path)
@@ -185,6 +245,17 @@ def execute_proposal(repository: Repository, proposal: dict[str, Any]) -> dict[s
         if guard.rowcount != 1:
             connection.rollback()
             raise WorkflowError("PROPOSAL_NOT_APPROVED", "提案不存在或未批准")
+        existing = connection.execute(
+            "SELECT asset_id FROM assets WHERE assignee_id = ? AND status IN ('in_use', 'reserved')",
+            (params["employee_id"],),
+        ).fetchall()
+        reserved = connection.execute(
+            "SELECT asset_id FROM wb_reservations WHERE employee_id = ? AND released_at IS NULL",
+            (params["employee_id"],),
+        ).fetchall()
+        if existing or reserved:
+            connection.rollback()
+            raise WorkflowError("EMPLOYEE_ALREADY_HAS_DEVICE", "该员工已持有设备或存在有效预留")
         asset = connection.execute("SELECT * FROM assets WHERE asset_id = ?", (asset_id,)).fetchone()
         if asset is None or asset["status"] != "in_stock":
             connection.rollback()
@@ -246,19 +317,19 @@ def approve_proposal(
     task = repository.get_task(proposal["task_id"])
     if proposal["requested_by"] == approver:
         raise WorkflowError("SELF_APPROVAL_FORBIDDEN", "请求人不能批准自己的申请")
-    if (
-        not is_admin
-        and approver_department
-        and proposal["department"]
-        and approver_department != proposal["department"]
-    ):
+    if not is_admin and (not approver_department.strip() or proposal["department"] != approver_department):
         raise WorkflowError("FORBIDDEN_DEPARTMENT", "无权审批其他部门的申请")
+    if not expected_hash:
+        raise WorkflowError("PARAMS_HASH_REQUIRED", "批准必须提供参数哈希")
+    if expected_hash != proposal["params_hash"]:
+        raise WorkflowError("PARAMS_CHANGED", "提案参数已变化，请重新审核")
+    actions = json.loads(proposal["actions_json"])
+    if not actions or params_hash(actions[0]) != proposal["params_hash"]:
+        raise WorkflowError("PROPOSAL_TAMPERED", "提案参数与哈希不一致")
     if proposal["status"] == "executed":
         return json.loads(proposal["result_json"] or "{}")
     if proposal["status"] != "pending":
         raise WorkflowError("PROPOSAL_NOT_PENDING", f"提案状态为 {proposal['status']}，不能批准")
-    if expected_hash and expected_hash != proposal["params_hash"]:
-        raise WorkflowError("PARAMS_CHANGED", "提案参数已变化，请重新审核")
     if task["status"] != "needs_approval":
         raise WorkflowError("TASK_NOT_PENDING_APPROVAL", "任务不在待审批状态")
 
@@ -298,12 +369,7 @@ def reject_proposal(
     proposal = repository.get_proposal(proposal_id)
     if proposal["requested_by"] == approver:
         raise WorkflowError("SELF_APPROVAL_FORBIDDEN", "请求人不能拒绝自己的申请")
-    if (
-        not is_admin
-        and approver_department
-        and proposal["department"]
-        and approver_department != proposal["department"]
-    ):
+    if not is_admin and (not approver_department.strip() or proposal["department"] != approver_department):
         raise WorkflowError("FORBIDDEN_DEPARTMENT", "无权审批其他部门的申请")
     if proposal["status"] == "executed":
         raise WorkflowError("ALREADY_EXECUTED", "提案已执行，不能拒绝")

@@ -26,7 +26,7 @@ from .support import (
 )
 
 
-def full_task(env, request: str = "新员工 EMP-1001 申请一台 ThinkPad T14 Gen5 笔记本电脑") -> str:
+def full_task(env, request: str = "新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑") -> str:
     env.fake.queue("planner", plan([("business", "查库存"), ("policy", "查制度")], audit=True))
     env.fake.queue("business", tool_call("query_inventory", {}), business_findings())
     env.fake.queue("policy", tool_call("search_knowledge", {"query": "研发岗 电脑 领用"}), policy_findings())
@@ -43,7 +43,7 @@ def ticket_count(db_path: Path) -> int:
 
 
 def test_actionable_detection() -> None:
-    assert is_actionable("新员工 EMP-1001 申请一台笔记本")
+    assert is_actionable("新员工 EMP-1012 申请一台笔记本")
     assert not is_actionable("现在库存多少")
 
 
@@ -102,6 +102,7 @@ def test_approval_executes_once_and_writes_ticket_and_reservation(tmp_path: Path
         approver="bob",
         approver_department="研发中心",
         is_admin=False,
+        expected_hash=proposal["params_hash"],
     )
     assert again == result
     assert ticket_count(env.settings.db_path) == before + 1
@@ -119,6 +120,7 @@ def test_requester_cannot_approve_own_request(tmp_path: Path) -> None:
             approver="alice",
             approver_department="研发中心",
             is_admin=False,
+            expected_hash=proposal["params_hash"],
         )
     assert excinfo.value.code == "SELF_APPROVAL_FORBIDDEN"
 
@@ -143,6 +145,7 @@ def test_wrong_department_cannot_approve(tmp_path: Path) -> None:
             approver="carol",
             approver_department="财务部",
             is_admin=False,
+            expected_hash=proposal["params_hash"],
         )
     assert excinfo.value.code == "FORBIDDEN_DEPARTMENT"
 
@@ -186,6 +189,7 @@ def test_reject_prevents_execution(tmp_path: Path) -> None:
             approver="bob",
             approver_department="研发中心",
             is_admin=False,
+            expected_hash=proposal["params_hash"],
         )
 
 
@@ -195,7 +199,7 @@ def test_no_proposal_when_audit_not_pass(tmp_path: Path) -> None:
     env.fake.queue("business", tool_call("query_inventory", {}), business_findings())
     env.fake.queue("policy", tool_call("search_knowledge", {"query": "领用"}), policy_findings())
     env.fake.queue("auditor", audit_result("needs_evidence", summary="证据不足"))
-    task_id = env.system.run("新员工 EMP-1001 申请一台 ThinkPad T14 Gen5 笔记本电脑")
+    task_id = env.system.run("新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑")
     assert env.repository.get_task(task_id)["status"] == "partial"
     assert env.repository.get_proposal_by_task(task_id) is None
 
@@ -210,7 +214,7 @@ def test_no_proposal_when_policy_is_draft(tmp_path: Path) -> None:
         policy_findings(status="草稿"),
     )
     env.fake.queue("auditor", audit_result("pass"))
-    task_id = env.system.run("新员工 EMP-1001 申请一台 ThinkPad T14 Gen5 笔记本电脑")
+    task_id = env.system.run("新员工 EMP-1012 申请一台 ThinkPad T14 Gen5 笔记本电脑")
     assert env.repository.get_proposal_by_task(task_id) is None
 
 
@@ -220,7 +224,7 @@ def test_no_proposal_when_stock_shortage(tmp_path: Path) -> None:
     env.fake.queue("business", tool_call("query_inventory", {}), business_findings())
     env.fake.queue("policy", tool_call("search_knowledge", {"query": "领用"}), policy_findings())
     env.fake.queue("auditor", audit_result("pass"))
-    task_id = env.system.run("新员工 EMP-1001 申请一台 ThinkPad L14 笔记本电脑")
+    task_id = env.system.run("新员工 EMP-1013 申请一台 ThinkPad L14 笔记本电脑")
     assert env.repository.get_proposal_by_task(task_id) is None
 
 
@@ -244,7 +248,7 @@ def test_concurrent_approval_only_one_reserves_single_asset(tmp_path: Path) -> N
         env.fake.queue("policy", tool_call("search_knowledge", {"query": "领用"}), policy_findings())
         env.fake.queue("auditor", audit_result("pass"))
         task_ids.append(
-            env.system.run("新员工 EMP-1001 申请一台 MacBook Air 13 笔记本电脑", owner="alice", department="研发中心")
+            env.system.run("新员工 EMP-1012 申请一台 MacBook Air 13 笔记本电脑", owner="alice", department="研发中心")
         )
     proposals = [env.repository.get_proposal_by_task(task_id) for task_id in task_ids]
     assert all(proposal is not None for proposal in proposals)
@@ -261,6 +265,7 @@ def test_concurrent_approval_only_one_reserves_single_asset(tmp_path: Path) -> N
                     approver="bob",
                     approver_department="研发中心",
                     is_admin=False,
+                    expected_hash=proposal["params_hash"],
                 )
             )
         except WorkflowError as exc:
