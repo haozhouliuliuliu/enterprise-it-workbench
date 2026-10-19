@@ -1,0 +1,14 @@
+{
+  "run_id": "run-20261019-115134",
+  "started_at": "2026-10-19T12:11:57+00:00",
+  "models": {
+    "planner": "deepseek-flash",
+    "business": "qwen3.8-flash",
+    "policy": "qwen3.8-flash",
+    "auditor": "kimi-k2.7-code"
+  },
+  "max_total_calls": 60,
+  "total_calls": 50,
+  "cases": 8,
+  "failures": []
+}

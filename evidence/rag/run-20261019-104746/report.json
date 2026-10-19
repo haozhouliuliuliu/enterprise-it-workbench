@@ -1,0 +1,602 @@
+{
+  "metrics": {
+    "cases": 30,
+    "answerable": 20,
+    "unanswerable": 10,
+    "recall_at_5": 1.0,
+    "citation_accuracy": 0.9,
+    "version_status_accuracy": 1.0,
+    "refusal_accuracy": 1.0,
+    "thresholds": {
+      "recall_at_5": 0.85,
+      "refusal_accuracy": 0.9,
+      "citation_accuracy": 0.9,
+      "version_status_accuracy": 1.0
+    },
+    "seeded": {
+      "imported": 11,
+      "skipped": 0,
+      "documents": 11
+    },
+    "passed": true
+  },
+  "cases": [
+    {
+      "id": "Q01",
+      "question": "研发岗新员工的电脑配置标准是什么？",
+      "expected_doc": "POL-IT-001",
+      "docs": [
+        "POL-IT-001",
+        "POL-IT-002",
+        "POL-IT-001"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        1.0292,
+        0.3955,
+        0.2961
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q02",
+      "question": "新员工领用电脑需要满足哪些条件？",
+      "expected_doc": "POL-IT-001",
+      "docs": [
+        "POL-IT-001"
+      ],
+      "statuses": [
+        "current"
+      ],
+      "scores": [
+        0.8579
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q03",
+      "question": "笔记本库存不足时应该怎么处理？",
+      "expected_doc": "POL-IT-001",
+      "docs": [
+        "POL-IT-002",
+        "POL-IT-001",
+        "POL-IT-002",
+        "POL-IT-002"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.6143,
+        0.4923,
+        0.4015,
+        0.3404
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": false,
+      "version_ok": true
+    },
+    {
+      "id": "Q04",
+      "question": "员工离职时设备如何归还？",
+      "expected_doc": "POL-IT-001",
+      "docs": [
+        "POL-IT-001",
+        "POL-IT-005"
+      ],
+      "statuses": [
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.8767,
+        0.47
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q05",
+      "question": "设备申请必须填写哪些信息？",
+      "expected_doc": "POL-IT-002",
+      "docs": [
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-004",
+        "POL-IT-001",
+        "POL-IT-001"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.8896,
+        0.6126,
+        0.525,
+        0.4654,
+        0.383
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q06",
+      "question": "显示器申请由谁审批？",
+      "expected_doc": "POL-IT-002",
+      "docs": [
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-001"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.6274,
+        0.4712,
+        0.4615,
+        0.3356
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q07",
+      "question": "新员工设备申请需要提前几个工作日提交？",
+      "expected_doc": "POL-IT-001",
+      "docs": [
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-001",
+        "POL-IT-001",
+        "POL-IT-002"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.6039,
+        0.5068,
+        0.4851,
+        0.4692,
+        0.4125
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": false,
+      "version_ok": true
+    },
+    {
+      "id": "Q08",
+      "question": "紧急设备申请怎么处理？",
+      "expected_doc": "POL-IT-002",
+      "docs": [
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-001",
+        "POL-IT-001",
+        "POL-IT-001"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.8889,
+        0.8019,
+        0.4725,
+        0.4689,
+        0.4235
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q09",
+      "question": "P1 故障的响应时限是多少？",
+      "expected_doc": "POL-IT-003",
+      "docs": [
+        "POL-IT-003",
+        "POL-IT-003",
+        "POL-IT-003"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.7733,
+        0.5756,
+        0.4076
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q10",
+      "question": "P1 故障超过多久需要升级？",
+      "expected_doc": "POL-IT-003",
+      "docs": [
+        "POL-IT-003",
+        "POL-IT-003",
+        "POL-IT-003"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.8373,
+        0.3678,
+        0.3053
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q11",
+      "question": "账号开通需要什么条件？",
+      "expected_doc": "POL-IT-004",
+      "docs": [
+        "POL-IT-004"
+      ],
+      "statuses": [
+        "current"
+      ],
+      "scores": [
+        0.9381
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q12",
+      "question": "生产环境权限申请需要谁审批？",
+      "expected_doc": "POL-IT-004",
+      "docs": [
+        "POL-IT-004",
+        "POL-IT-002"
+      ],
+      "statuses": [
+        "current",
+        "current"
+      ],
+      "scores": [
+        1.0144,
+        0.4096
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q13",
+      "question": "权限多久复核一次？",
+      "expected_doc": "POL-IT-004",
+      "docs": [
+        "POL-IT-004"
+      ],
+      "statuses": [
+        "current"
+      ],
+      "scores": [
+        0.7909
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q14",
+      "question": "公司数据分为哪些级别？",
+      "expected_doc": "POL-IT-005",
+      "docs": [
+        "POL-IT-005",
+        "POL-IT-001"
+      ],
+      "statuses": [
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.7231,
+        0.6174
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q15",
+      "question": "数据外发需要什么审批？",
+      "expected_doc": "POL-IT-005",
+      "docs": [
+        "POL-IT-005",
+        "POL-IT-005",
+        "POL-IT-004"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.9876,
+        0.5123,
+        0.4481
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q16",
+      "question": "密码与密钥管理有什么要求？",
+      "expected_doc": "POL-IT-005",
+      "docs": [
+        "POL-IT-005",
+        "POL-IT-004",
+        "POL-IT-005"
+      ],
+      "statuses": [
+        "current",
+        "current",
+        "current"
+      ],
+      "scores": [
+        0.9547,
+        0.609,
+        0.3028
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q17",
+      "question": "设备遗失后应该怎么做？",
+      "expected_doc": "POL-IT-005",
+      "docs": [
+        "POL-IT-005"
+      ],
+      "statuses": [
+        "current"
+      ],
+      "scores": [
+        0.9056
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q18",
+      "question": "资产预留超过多久会自动释放？",
+      "expected_doc": "POL-IT-012",
+      "docs": [
+        "POL-IT-012"
+      ],
+      "statuses": [
+        "current"
+      ],
+      "scores": [
+        0.7631
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q19",
+      "question": "旧版制度规定新员工设备申请何时提交？",
+      "expected_doc": "POL-IT-002",
+      "docs": [
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-001",
+        "POL-IT-009"
+      ],
+      "statuses": [
+        "superseded",
+        "superseded",
+        "current",
+        "current",
+        "draft"
+      ],
+      "scores": [
+        0.7971,
+        0.5765,
+        0.4927,
+        0.4925,
+        0.4068
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "Q20",
+      "question": "草稿提议显示器由谁审批？",
+      "expected_doc": "POL-IT-009",
+      "docs": [
+        "POL-IT-009",
+        "POL-IT-009",
+        "POL-IT-002",
+        "POL-IT-002",
+        "POL-IT-002"
+      ],
+      "statuses": [
+        "draft",
+        "draft",
+        "current",
+        "superseded",
+        "superseded"
+      ],
+      "scores": [
+        0.8595,
+        0.6213,
+        0.4968,
+        0.4768,
+        0.3785
+      ],
+      "answerable": true,
+      "recall_at_5": true,
+      "citation_correct": true,
+      "version_ok": true
+    },
+    {
+      "id": "N01",
+      "question": "员工食堂午餐补贴标准是多少？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N02",
+      "question": "公司班车路线经过哪些地铁站？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N03",
+      "question": "年度员工旅游预算是多少？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N04",
+      "question": "股票期权行权价格如何确定？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N05",
+      "question": "员工健身房开放时间？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N06",
+      "question": "出差高铁票怎么报销？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N07",
+      "question": "员工子女教育补贴政策？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N08",
+      "question": "办公室绿植由哪家供应商维护？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N09",
+      "question": "年会抽奖奖品清单？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    },
+    {
+      "id": "N10",
+      "question": "员工生日礼盒定制预算是多少？",
+      "expected_doc": null,
+      "docs": [],
+      "statuses": [],
+      "scores": [],
+      "answerable": false,
+      "refused": true
+    }
+  ]
+}

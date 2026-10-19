@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enterprise-it-workbench"
+version = "1.0.0"
+description = "企业 IT 入职与设备合规工作台（RAG + 多 Agent + 审批工作流）"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "haozhouliuliuliu" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+  "pydantic>=2.6,<3",
+  "httpx>=0.27,<1",
+  "fastapi>=0.111,<1",
+  "uvicorn[standard]>=0.30,<1",
+  "pypdf>=4,<6",
+  "python-docx>=1.1,<2",
+  "reportlab>=4,<5",
+  "python-multipart>=0.0.9,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9",
+  "pytest-cov>=5,<7",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+workbench = "workbench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["workbench"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/workbench/api.py" = ["B008"]
+"src/workbench/ui.py" = ["E501"]
+"eval/harness.py" = ["E501", "RUF059"]
+"src/workbench/db.py" = ["E501"]
+"src/workbench/knowledge.py" = ["E501"]
+"src/workbench/repository.py" = ["E501"]
+"src/workbench/config.py" = ["E501"]
+"src/workbench/cli.py" = ["E501"]
+"src/workbench/orchestrator.py" = ["E501"]
+
+[tool.coverage.run]
+source = ["workbench"]
