@@ -36,7 +36,7 @@
 - README、架构、威胁模型、API、部署、已知限制；
 - 固定 RAG 评估（30 题）与报告；
 - 8 场景真实模型评估（任务状态、审核、模型、调用数、证据、失败归因）；
-- 126 个自动化测试、覆盖率报告、CI（3.11/3.12 + Docker + HTTPS Compose）；
+- 127 个自动化测试、覆盖率报告、CI（3.11/3.12 + Docker + HTTPS Compose）；
 - 备份/恢复实测。
 
 ## 4. 明确未覆盖
@@ -53,6 +53,8 @@
 | 空部门 approver 可跨部门 | 配置层强制 approver 部门非空；服务层对空部门拒绝审批列表/任务读取/决策；workflow 严格比较部门 | `test_approver_without_department...`、`test_empty_department_approver...` |
 | approve 可省略 params_hash | API 模型校验 approve 必填；service 再次检查；workflow 强制非空并比对；执行前重算 actions 哈希 | `test_approve_without_hash...`、`test_tampered_actions...`、API 缺 hash 422/错 hash 409 |
 | 制度状态依赖模型 | 新增 `KnowledgeStore.document_metadata`；审核与提案生成均用知识库权威 doc_id/version/status/有效期；模型 status 仅作待核对字段 | `test_model_lies_about_draft_status_blocks_proposal`；`_program_issues` 权威校验 |
+| 目标员工部门与申请部门不一致 | 提案生成前比较员工部门与任务部门；无明确跨部门代办机制时阻断并记录 `proposal_blocked` | `test_cross_department_target_employee_blocks_proposal` |
 | 重复申请未程序级阻断 | 提案前查询员工在用在库/有效预留并记录 `proposal_blocked`；执行事务再次检查；`wb_reservations` 员工活跃唯一索引 | `test_employee_with_existing_asset...`、`test_employee_with_active_reservation...` |
+| UI 浏览器测试吞掉断言失败 | 仅浏览器/环境启动失败时 skip；断言失败会让测试失败 | `test_ui.py` 结构审查 |
 | UI 动态 HTML 未转义 | 所有动态字段使用 `escapeHtml`；任务/审批按钮改用 data 属性 + 事件监听；真实 Edge 浏览器测试恶意内容只显示为文本 | `tests/test_ui.py`（quickjs + Playwright/Edge） |
 | RAG 报告口径 | 统一使用最终运行 `refusal_accuracy=1.0`（10/10） | `evidence/rag/run-20261019-104746/report.json`、`docs/testing.md` |

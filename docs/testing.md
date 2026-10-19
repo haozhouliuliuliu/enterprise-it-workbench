@@ -9,7 +9,7 @@ pytest -q
 pytest --cov=workbench --cov-report=term
 ```
 
-- **126 passed**；
+- **127 passed**；
 - 覆盖率 **84%**（CI 门槛 80%）；
 - Python 3.11 / 3.12（CI）；
 - ruff check / format 通过。
@@ -47,7 +47,7 @@ python -m eval.rag_eval --output evidence/rag
 
 ## 3. 真实模型端到端评估
 
-运行：`evidence/real-model/run-20261019-125156/`（真实 FastAPI + 真实模型，48/60 次调用）
+运行：`evidence/real-model/run-20261019-125156/`（真实 FastAPI + 真实模型，48/60 次调用；该轮代码为 v1.0.1 提交 f044d79）
 
 | 用例 | 场景 | 任务状态 | 审核 | 提案/执行 | 调用 | 预期行为 |
 |---|---|---|---|---|---|---|
@@ -65,6 +65,8 @@ python -m eval.rag_eval --output evidence/rag
 - R8 的最终报告包含 `proposal_blocked.reason` 与 `evidence=["ASSET-1002"]`，证明是程序规则而非模型判断；
 - R7 制度模型不可用时，Business 没有制度检索权限，报告无制度结论；
 - 真实调用 48 次，未超 60。
+
+v1.0.2 新增的“目标员工部门必须等于申请部门”守卫不改变这 8 个场景的任务/员工部门，因此未重跑真实评估；该守卫由 `test_cross_department_target_employee_blocks_proposal` 覆盖。
 
 失败/修复轮次：评估器自身曾因 TestClient 生命周期/变量遮蔽中断；首轮真实运行遇到 Qwen 网络
 `RemoteProtocolError`，已把可重试尝试提高到 3 次并重跑。中断轮次未计入本报告。

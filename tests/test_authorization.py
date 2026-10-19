@@ -225,3 +225,19 @@ def test_employee_with_active_reservation_blocks_second_proposal(tmp_path: Path)
     reservations = env.repository.list_reservations()
     assert len(reservations) == 1
     assert reservations[0]["employee_id"] == "EMP-1012"
+
+
+def test_cross_department_target_employee_blocks_proposal(tmp_path: Path) -> None:
+    env = build_env(tmp_path)
+    before_tickets = ticket_count(env.settings.db_path)
+    before_reservations = len(env.repository.list_reservations())
+    # 申请人是研发中心，但目标员工 EMP-1013 属于财务部
+    task_id = full_task(env, "新员工 EMP-1013 申请一台 ThinkPad T14 Gen5 笔记本电脑")
+    assert env.repository.get_proposal_by_task(task_id) is None
+    final = json.loads(env.repository.get_task(task_id)["final_json"])
+    blocked = final["proposal_blocked"]
+    assert "部门不一致" in blocked["reason"]
+    assert "财务部" in blocked["reason"]
+    assert blocked["evidence"][0] == "EMP-1013"
+    assert ticket_count(env.settings.db_path) == before_tickets
+    assert len(env.repository.list_reservations()) == before_reservations

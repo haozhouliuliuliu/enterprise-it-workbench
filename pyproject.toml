@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enterprise-it-workbench"
-version = "1.0.1"
+version = "1.0.2"
 description = "企业 IT 入职与设备合规工作台（RAG + 多 Agent + 审批工作流）"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -138,7 +138,7 @@ python -m eval.rag_eval --output evidence/rag
 python -m eval.harness --output evidence/real-model   # 需要三个模型密钥，≤60 次调用
 ```
 
-- **126 个自动化测试，覆盖率 84%**；
+- **127 个自动化测试，覆盖率 84%**；
 - RAG 固定集 30 题，指标见上；
 - 真实模型 8 个端到端场景（含审批执行、重复审批、Policy 故障）：见 [docs/testing.md](docs/testing.md)。
 

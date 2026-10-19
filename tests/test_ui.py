@@ -49,18 +49,21 @@ def test_ui_has_no_inline_dynamic_onclick() -> None:
 
 def test_malicious_html_is_text_in_real_browser() -> None:
     playwright = pytest.importorskip("playwright.sync_api")
+    # 只有浏览器/运行环境不可用时才 skip；后续断言失败必须让测试失败。
     try:
-        with playwright.sync_playwright() as p:
-            browser = p.chromium.launch(channel="msedge", headless=True)
-            page = browser.new_page()
-            page.set_content(INDEX_HTML)
-            page.evaluate(
-                "document.getElementById('tasklist').innerHTML = "
-                "'<table>' + renderTaskRow(" + MALICIOUS + ") + '</table>'"
-            )
-            assert page.locator("#tasklist img").count() == 0
-            assert page.locator("#tasklist script").count() == 0
-            assert page.locator("#tasklist").inner_text().count("<script>") >= 1
-            browser.close()
-    except Exception as exc:  # CI 没有浏览器时跳过
+        manager = playwright.sync_playwright().start()
+        browser = manager.chromium.launch(channel="msedge", headless=True)
+    except Exception as exc:
         pytest.skip(f"browser unavailable: {exc}")
+    try:
+        page = browser.new_page()
+        page.set_content(INDEX_HTML)
+        page.evaluate(
+            "document.getElementById('tasklist').innerHTML = '<table>' + renderTaskRow(" + MALICIOUS + ") + '</table>'"
+        )
+        assert page.locator("#tasklist img").count() == 0
+        assert page.locator("#tasklist script").count() == 0
+        assert page.locator("#tasklist").inner_text().count("<script>") >= 1
+    finally:
+        browser.close()
+        manager.stop()

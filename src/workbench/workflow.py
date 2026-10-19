@@ -146,6 +146,16 @@ def maybe_create_proposal(
             _block_proposal(repository, task["id"], f"员工不存在：{employee_id}", [employee_id])
             return None
         department = employee["department"]
+        task_department = (task.get("department") or "").strip()
+        if not task_department or department != task_department:
+            _block_proposal(
+                repository,
+                task["id"],
+                "目标员工部门与申请部门不一致："
+                f"{employee_id} 属于 {department}，申请部门为 {task_department or '未绑定'}",
+                [employee_id, department],
+            )
+            return None
         model = choose_model(request, department)
         allowed = ALLOWED_MODELS.get(department, {"ThinkPad L14"})
         if model not in allowed:
@@ -192,7 +202,7 @@ def maybe_create_proposal(
             actions=[params],
             params_hash=digest,
             requested_by=task["owner"],
-            department=task.get("department") or "",
+            department=department,
         )
     finally:
         connection.close()
