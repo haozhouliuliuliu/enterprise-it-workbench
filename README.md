@@ -7,6 +7,12 @@
 [![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+## 业务场景
+
+新员工入职通常要同时处理：确认员工与部门、查岗位标准机型、查库存、核对制度版本、走审批、预留资产、建工单。制度可能还有草稿和旧版，库存会变，审批不能由申请人自己完成。
+
+这个项目把这条链路做成一个受控工作台：RAG 负责制度依据，业务工具负责库存/员工/设备事实，四个 Agent 分工研判，程序负责证据校验、审批和事务执行。它适合作为企业 IT 入职、设备管理、合规审批的 AI 落地原型，也适合演示“AI 可以分析，但不能绕过审批动数据”。
+
 ## 这个项目做了什么
 
 一条完整的受控链路：
@@ -152,7 +158,7 @@ python -m eval.harness --output evidence/real-model   # 需要三个模型密钥
   - R2 库存不足 / R3 非标准机型 / R5 注入 / R6 员工不存在 → 均无提案
   - R7 Policy 模型 404 → `policy_unavailable=true`，无制度结论
   - R8 同一员工重复申请 → 程序检测到已有 `ASSET-1002`，拒绝生成提案，零写入
-- 详细表格与失败轮次说明：[docs/testing.md](docs/testing.md)
+- 逐用例结果与限制：[docs/testing.md](docs/testing.md)
 
 ## Docker 与 HTTPS
 
@@ -170,12 +176,19 @@ Agent 以 uid 10001 运行，数据库/知识库在 `workbench-data` 卷；Caddy
 
 - [架构与数据流](docs/architecture.md)
 - [威胁模型](docs/threat-model.md)
-- [验收对照](docs/acceptance.md)
-- [API](docs/api.md)
 - [测试与评估](docs/testing.md)
+- [API](docs/api.md)
 - [部署/备份](docs/deployment.md)
 - [已知限制](docs/known-limitations.md)
 - [上游来源](UPSTREAM.md)
+
+## 适用场景与可复用产出
+
+- **业务调研**：把入职设备申请拆成员工、岗位、库存、制度、审批五类事实；
+- **RAG 落地**：PDF/DOCX/TXT/MD 导入、版本/状态/生效期、混合检索、引用证据 ID；
+- **Agent 协作**：Planner / Business / Policy / Auditor 分工，业务与制度并行，审核独立；
+- **受控执行**：提案参数哈希、部门审批、请求人不能自批、事务预留、重复申请阻断；
+- **可复用材料**：30 题 RAG 评估集、8 个真实模型场景、威胁模型、Docker + HTTPS 部署。
 
 ## 许可
 
